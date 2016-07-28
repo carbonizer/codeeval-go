@@ -11,7 +11,6 @@ import (
 // Imports for the specific problem
 import (
 	"errors"
-	"golang.org/x/tools/container/intsets"
 	"strconv"
 	"strings"
 )
@@ -106,11 +105,11 @@ func inputToFuncToStdout(fn func([]byte) (interface{}, error), it InputType) {
 //
 
 // Update if using INPUT_CONSTANT
-const FAKE_INPUT = ""
+const FAKE_INPUT = "CCAACTGGATACAAACATCGGATGATTGGCCGCCGGATTTATTACATTTAGAGGTCCAAGGTGGGCTCCTACGGATGTGTCAATATCGATTAAGGTACGTAGCCTGCTGGCGCAATTATGTAGCGATGTATGATCGCGTATCACGCCTTAAACAATGTACAGCCCCTCCTCACGGAGGCGCAATCTACGAC | CCCCGACCGGGCTGTTACATTTAGGTGTTTAACGGAGGTACGCTCCAAAACGGATAGCCTGCGCCCCAGTGTACGTAAACACATGCACACGTTTGATTCTTTACGGGGCGGCCCACAATAGTAAGAATAAATTGACGCAATATACGTG\nATCTAGCGGCCCCGTGGGAGTATATAAAATTACGGGGAAATCCGCCGACAGCCTGGAGATAACGATCAACAGGAACATCCCTTGCCATGTTATTCCAGCGATCGCGTGAGCTTGCTGGTCGTCTATATGGGTGGGCGCTACTACCCCCGGCCTTATAGCG | ATCTAGGGTCCGCGTGGGATATATGGTCATTGCAAATAGGTCTACGCAATTAAATGGTCACCTCTGACTGCGTGGAGATGACGATCACGAGGCACATCGATTAGTTTCATAAGGGACGAATCCCTTGCCATGTTATGATGATGCGCAGGAAATCCAAAGCGAGGGCTATCCCCCGGCTAGCG\nCTTCAATTACTTCTATCTAAAAAAGGGAGGTTCATAAAAAAACTCTCTCATCAGATCTATTAGGGGCGAAATAATTGGTTCAAGGCAACTTGGGACTAACTCAATGTAACACCCCTGCCTTCTTCCCTGTCATGTCTTACGGTTGACAATGTCGAGCCGCTAACATCATCAGGTGGACGGCTAGGACGCAAGGGGGT | CTTCAGACACTTCGATCTCAAAACTACATGATCTGCAGCCCAACAAATTCTAGAAGTCCCCCAGAGTTCACCCATCAGATCTATTAGGGGCGTCGGCTAGAACAAACTGATGTCCTCCGTAGAACGTAGAGCGCTACTAAATGTTACCCCCCCTCTCATGCTACCAGTGAACTTAGGGTTGACACTGTAGAGCCCAAGCCCATCGCCAGCTTCGCTCACAAGGGGGT"
 
 // Just update the function name and the input type
 func main() {
-	inputToFuncToStdout(DnaAlignment, INPUT_FILEARG)
+	inputToFuncToStdout(DnaAlignment, INPUT_CONSTANT)
 }
 
 // StrsToInts converts a slice of strings to a slice of ints.
@@ -350,8 +349,17 @@ func DnaAlignment(input []byte) (interface{}, error) {
 	for i, line := range lines {
 		// " | " splits full and partial sequence
 		argStrs := strings.Split(line, " | ")
-		full := []rune(argStrs[0])
-		partial := []rune(argStrs[1])
+		var full, partial []rune
+		if len(argStrs[0]) < len(argStrs[1]) {
+			full = []rune(argStrs[1])
+			partial = []rune(argStrs[0])
+		} else {
+			full = []rune(argStrs[0])
+			partial = []rune(argStrs[1])
+		}
+		fmt.Println(string(full))
+		fmt.Println(string(partial))
+		fmt.Println(uint(len(full)-2), uint(len(partial)-2))
 
 		// Determine possible combination of indices for where to stick
 		// the inner runes of partial.  Inner means we are ignoring the
@@ -363,7 +371,11 @@ func DnaAlignment(input []byte) (interface{}, error) {
 			uint(len(full)-2), uint(len(partial)-2))
 
 		possibles := make([]Attempt, len(replaceCombos))
-		best := Attempt{[]rune{}, intsets.MinInt}
+		// I originally used MinInt, but it isn't part of the std lib,
+		// so it didn't work as a solution. -10000 should be more than
+		// enough anyway.
+		best := Attempt{[]rune{}, -10000}
+
 		for j, combo := range replaceCombos {
 			// Prep output with default values
 			out := make([]rune, len(full))
